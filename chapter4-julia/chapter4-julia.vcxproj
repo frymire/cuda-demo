@@ -14,7 +14,7 @@
     <ProjectGuid>{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}</ProjectGuid>
     <RootNamespace>chapter4_julia</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
-    <ProjectName>chapter4-julia-cpu</ProjectName>
+    <ProjectName>chapter4-juliaCPU</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -86,7 +86,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="julia_cpu.cu" />
+    <CudaCompile Include="juliaCPU.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

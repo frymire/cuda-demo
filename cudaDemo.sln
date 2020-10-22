@@ -9,13 +9,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter3", "chapter3\chapter3.vcxproj", "{229F2F78-4C27-4ECA-BE37-35BBE8491183}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-add-loop", "chapter4\chapter4.vcxproj", "{06CB1171-A802-457D-8A87-EECA82453C8C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-addLoop", "chapter4\chapter4.vcxproj", "{06CB1171-A802-457D-8A87-EECA82453C8C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-julia-cpu", "chapter4-julia\chapter4-julia.vcxproj", "{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-juliaCPU", "chapter4-julia\chapter4-julia.vcxproj", "{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-julia-gpu", "chapter4-julia-gpu\chapter4-julia-gpu.vcxproj", "{9BB3EEA7-0E51-4D1E-B927-7111065916A8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-juliaGPU", "chapter4-julia-gpu\chapter4-julia-gpu.vcxproj", "{9BB3EEA7-0E51-4D1E-B927-7111065916A8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-vectorSumsRedux", "chapter5-vectorSumsRedux\chapter5-vectorSumsRedux.vcxproj", "{61085FCB-413E-451D-A4A3-770D10BB2570}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-dotProduct", "chapter5-dotProduct\chapter5-dotProduct.vcxproj", "{332B48D4-9049-4BBB-BA37-D04FF6B099D7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{61085FCB-413E-451D-A4A3-770D10BB2570}.Debug|x64.Build.0 = Debug|x64
 		{61085FCB-413E-451D-A4A3-770D10BB2570}.Release|x64.ActiveCfg = Release|x64
 		{61085FCB-413E-451D-A4A3-770D10BB2570}.Release|x64.Build.0 = Release|x64
+		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Debug|x64.ActiveCfg = Debug|x64
+		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Debug|x64.Build.0 = Debug|x64
+		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Release|x64.ActiveCfg = Release|x64
+		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

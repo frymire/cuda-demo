@@ -11,10 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{06CB1171-A802-457D-8A87-EECA82453C8C}</ProjectGuid>
-    <RootNamespace>chapter4</RootNamespace>
+    <ProjectGuid>{332B48D4-9049-4BBB-BA37-D04FF6B099D7}</ProjectGuid>
+    <RootNamespace>chapter5_dotProduct</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
-    <ProjectName>chapter4-addLoop</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -79,7 +78,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="chapter4-addLoop.cu" />
+    <CudaCompile Include="dotProduct.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

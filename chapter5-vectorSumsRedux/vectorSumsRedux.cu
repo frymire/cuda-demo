@@ -16,10 +16,11 @@
 
 #include "../common/book.h"
 
-#define N (33*1024)
+const int N = 33*1024;
+const int nBytes = N*sizeof(int);
 
 __global__ void add(int *a, int *b, int *c) {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	int tid = blockDim.x*blockIdx.x + threadIdx.x;
 	while (tid < N) {
 		c[tid] = a[tid] + b[tid];
 		tid += blockDim.x*gridDim.x;
@@ -28,11 +29,9 @@ __global__ void add(int *a, int *b, int *c) {
 
 int main(void) {
 
-	const int nBytes = N*sizeof(int);
-	int *a, *b, *c;
-	
-	// Allocate the memory on the CPU.
-	a = (int*) malloc(nBytes);
+  // Allocate the memory on the CPU.
+  int *a, *b, *c;
+  a = (int*) malloc(nBytes);
 	b = (int*) malloc(nBytes);
 	c = (int*) malloc(nBytes);
 
