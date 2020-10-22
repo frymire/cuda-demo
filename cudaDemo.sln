@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-vectorSumsRedux", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-dotProduct", "chapter5-dotProduct\chapter5-dotProduct.vcxproj", "{332B48D4-9049-4BBB-BA37-D04FF6B099D7}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-ripple", "chapter5-ripple\chapter5-ripple.vcxproj", "{653F1C54-6039-4F84-92E6-580C99D749A2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -53,6 +55,10 @@ Global
 		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Debug|x64.Build.0 = Debug|x64
 		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Release|x64.ActiveCfg = Release|x64
 		{332B48D4-9049-4BBB-BA37-D04FF6B099D7}.Release|x64.Build.0 = Release|x64
+		{653F1C54-6039-4F84-92E6-580C99D749A2}.Debug|x64.ActiveCfg = Debug|x64
+		{653F1C54-6039-4F84-92E6-580C99D749A2}.Debug|x64.Build.0 = Debug|x64
+		{653F1C54-6039-4F84-92E6-580C99D749A2}.Release|x64.ActiveCfg = Release|x64
+		{653F1C54-6039-4F84-92E6-580C99D749A2}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
