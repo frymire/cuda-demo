@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1267
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "defaultNSightDemo", "cudaDemo\cudaDemo.vcxproj", "{048A199D-6BBD-4514-8BE3-1AC495D2145B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcxitems", "{E7A0253F-6734-4392-B1CE-3088ABE56308}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter3", "chapter3\chapter3.vcxproj", "{229F2F78-4C27-4ECA-BE37-35BBE8491183}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-add-loop", "chapter4\chapter4.vcxproj", "{06CB1171-A802-457D-8A87-EECA82453C8C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-julia-cpu", "chapter4-julia\chapter4-julia.vcxproj", "{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-julia-gpu", "chapter4-julia-gpu\chapter4-julia-gpu.vcxproj", "{9BB3EEA7-0E51-4D1E-B927-7111065916A8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{048A199D-6BBD-4514-8BE3-1AC495D2145B}.Debug|x64.ActiveCfg = Debug|x64
+		{048A199D-6BBD-4514-8BE3-1AC495D2145B}.Debug|x64.Build.0 = Debug|x64
+		{048A199D-6BBD-4514-8BE3-1AC495D2145B}.Release|x64.ActiveCfg = Release|x64
+		{048A199D-6BBD-4514-8BE3-1AC495D2145B}.Release|x64.Build.0 = Release|x64
+		{229F2F78-4C27-4ECA-BE37-35BBE8491183}.Debug|x64.ActiveCfg = Debug|x64
+		{229F2F78-4C27-4ECA-BE37-35BBE8491183}.Debug|x64.Build.0 = Debug|x64
+		{229F2F78-4C27-4ECA-BE37-35BBE8491183}.Release|x64.ActiveCfg = Release|x64
+		{229F2F78-4C27-4ECA-BE37-35BBE8491183}.Release|x64.Build.0 = Release|x64
+		{06CB1171-A802-457D-8A87-EECA82453C8C}.Debug|x64.ActiveCfg = Debug|x64
+		{06CB1171-A802-457D-8A87-EECA82453C8C}.Debug|x64.Build.0 = Debug|x64
+		{06CB1171-A802-457D-8A87-EECA82453C8C}.Release|x64.ActiveCfg = Release|x64
+		{06CB1171-A802-457D-8A87-EECA82453C8C}.Release|x64.Build.0 = Release|x64
+		{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}.Debug|x64.ActiveCfg = Debug|x64
+		{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}.Debug|x64.Build.0 = Debug|x64
+		{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}.Release|x64.ActiveCfg = Release|x64
+		{4C4BEB1C-4A6C-433D-B4B7-A02CDD357821}.Release|x64.Build.0 = Release|x64
+		{9BB3EEA7-0E51-4D1E-B927-7111065916A8}.Debug|x64.ActiveCfg = Debug|x64
+		{9BB3EEA7-0E51-4D1E-B927-7111065916A8}.Debug|x64.Build.0 = Debug|x64
+		{9BB3EEA7-0E51-4D1E-B927-7111065916A8}.Release|x64.ActiveCfg = Release|x64
+		{9BB3EEA7-0E51-4D1E-B927-7111065916A8}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2978959C-DE9E-4564-B2A2-EF3A800505B9}
+	EndGlobalSection
+EndGlobal
