@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-dotProduct", "chap
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-ripple", "chapter5-ripple\chapter5-ripple.vcxproj", "{653F1C54-6039-4F84-92E6-580C99D749A2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-sharedMemoryBitmap", "chapter5-sharedMemoryBitmap\chapter5-sharedMemoryBitmap.vcxproj", "{C2E7C9AC-3F11-43D0-82DC-E2E0406D599A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -59,6 +61,10 @@ Global
 		{653F1C54-6039-4F84-92E6-580C99D749A2}.Debug|x64.Build.0 = Debug|x64
 		{653F1C54-6039-4F84-92E6-580C99D749A2}.Release|x64.ActiveCfg = Release|x64
 		{653F1C54-6039-4F84-92E6-580C99D749A2}.Release|x64.Build.0 = Release|x64
+		{C2E7C9AC-3F11-43D0-82DC-E2E0406D599A}.Debug|x64.ActiveCfg = Debug|x64
+		{C2E7C9AC-3F11-43D0-82DC-E2E0406D599A}.Debug|x64.Build.0 = Debug|x64
+		{C2E7C9AC-3F11-43D0-82DC-E2E0406D599A}.Release|x64.ActiveCfg = Release|x64
+		{C2E7C9AC-3F11-43D0-82DC-E2E0406D599A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
