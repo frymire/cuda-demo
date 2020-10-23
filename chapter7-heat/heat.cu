@@ -23,165 +23,185 @@
 #define MIN_TEMP 0.0001f
 #define SPEED 0.25f
 
- // these exist on the GPU side
-texture<float, 2> texConstSrc;
-texture<float, 2> texIn;
-texture<float, 2> texOut;
-
-__global__ void blend_kernel(float *dst, bool dstOut);
-__global__ void copy_const_kernel(float *iptr);
-
 // Globals needed by the update routine.
 struct DataBlock {
-  unsigned char *output_bitmap;
-  float *dev_inSrc;
-  float *dev_outSrc;
-  float *dev_constSrc;
-  CPUAnimBitmap *bitmap;
+
   cudaEvent_t start, stop;
   float totalTime;
-  float frames;
+  float nFrames;
+
+  float* dev_constantImageData;
+  float* dev_pingImageData; // ping-pong buffer for the image data
+  float* dev_pongImageData;
+  unsigned char* dev_outputBitmap;
+  CPUAnimBitmap* host_bitmap;
 };
 
-void anim_gpu(DataBlock *d, int ticks);
-void anim_exit(DataBlock *d);
+void setConstantTemperatureData(float* pixelTemperatures);
+void setInitialTemperatureData(float* pixelTemperatures);
+void gpuUpdateFrame(DataBlock *d, int ticks);
+__global__ void resetConstantTemperaturePixels(float* pixelTemperatures);
+__global__ void computeNextFrame(float *outputFrame, bool usePing);
+void gpuExitAnimation(DataBlock *d);
+
+// Define 2-D float textures.
+texture<float, 2> texConstantImage;
+texture<float, 2> texPingImage;
+texture<float, 2> texPongImage;
 
 int main(void) {
 
   DataBlock data;
-  CPUAnimBitmap bitmap(DIM, DIM, &data);
-  data.bitmap = &bitmap;
-  data.totalTime = 0;
-  data.frames = 0;
   HANDLE_ERROR(cudaEventCreate(&data.start));
   HANDLE_ERROR(cudaEventCreate(&data.stop));
+  data.totalTime = 0;
+  data.nFrames = 0;
+  CPUAnimBitmap host_bitmap(DIM, DIM, &data);
+  data.host_bitmap = &host_bitmap;
 
-  int imageSize = bitmap.image_size();
+  int nImageBytes = host_bitmap.image_size();
+  HANDLE_ERROR(cudaMalloc((void**) &data.dev_constantImageData, nImageBytes));
+  HANDLE_ERROR(cudaMalloc((void**) &data.dev_pingImageData, nImageBytes));
+  HANDLE_ERROR(cudaMalloc((void**) &data.dev_pongImageData, nImageBytes));
+  HANDLE_ERROR(cudaMalloc((void**) &data.dev_outputBitmap, nImageBytes));
 
-  HANDLE_ERROR(cudaMalloc((void**) &data.output_bitmap, imageSize));
+  cudaChannelFormatDesc textureDescriptor = cudaCreateChannelDesc<float>();
+  HANDLE_ERROR(cudaBindTexture2D(NULL, texConstantImage, data.dev_constantImageData, textureDescriptor, DIM, DIM, sizeof(float)*DIM));
+  HANDLE_ERROR(cudaBindTexture2D(NULL, texPingImage, data.dev_pingImageData, textureDescriptor, DIM, DIM, sizeof(float)*DIM));
+  HANDLE_ERROR(cudaBindTexture2D(NULL, texPongImage, data.dev_pongImageData, textureDescriptor, DIM, DIM, sizeof(float)*DIM));
 
-  // assume float == 4 chars in size (ie rgba)
-  HANDLE_ERROR(cudaMalloc((void**) &data.dev_inSrc, imageSize));
-  HANDLE_ERROR(cudaMalloc((void**) &data.dev_outSrc, imageSize));
-  HANDLE_ERROR(cudaMalloc((void**) &data.dev_constSrc, imageSize));
+  float *pixelTemperatures = (float*) malloc(nImageBytes);
 
-  cudaChannelFormatDesc desc = cudaCreateChannelDesc<float>();
-  HANDLE_ERROR(cudaBindTexture2D(NULL, texConstSrc, data.dev_constSrc, desc, DIM, DIM, sizeof(float)*DIM));
-  HANDLE_ERROR(cudaBindTexture2D(NULL, texIn, data.dev_inSrc, desc, DIM, DIM, sizeof(float) * DIM));
-  HANDLE_ERROR(cudaBindTexture2D(NULL, texOut, data.dev_outSrc, desc, DIM, DIM, sizeof(float) * DIM));
+  // Set temperature values that will be fixed for the whole run.
+  setConstantTemperatureData(pixelTemperatures);
+  HANDLE_ERROR(cudaMemcpy(data.dev_constantImageData, pixelTemperatures, nImageBytes, cudaMemcpyHostToDevice));
 
-  // Initialize the constant data.
-  float *temp = (float*) malloc(imageSize);
-  for (int i = 0; i<DIM*DIM; i++) {
-    temp[i] = 0;
-    int x = i % DIM;
-    int y = i / DIM;
-    if ((x > 300) && (x < 600) && (y > 310) && (y < 601))
-      temp[i] = MAX_TEMP;
+  // Picking up from where we left off, initialize the ping buffer to set temperature values for the frame at time 0.
+  setInitialTemperatureData(pixelTemperatures);
+  HANDLE_ERROR(cudaMemcpy(data.dev_pingImageData, pixelTemperatures, nImageBytes, cudaMemcpyHostToDevice));
+  free(pixelTemperatures);
+
+  // When you run it, the temperature in the constant regions does not change, 
+  // while that in the region set by the setInitialTemperatureData() does.
+  host_bitmap.anim_and_exit( (void(*)(void*, int)) gpuUpdateFrame, (void(*)(void*)) gpuExitAnimation );
+}
+
+void setConstantTemperatureData(float* pixelTemperatures) {
+
+  // Set a couple of block to the maximum and minimum temperature, respectively.
+  for (int i = 0; i < DIM*DIM; i++) {
+    pixelTemperatures[i] = 0;
+    int x = i % DIM; // row major
+    int y = i / DIM; // row major
+    if ((x > 300) && (x < 600) && (y > 310) && (y < 601)) pixelTemperatures[i] = MAX_TEMP;
+    if ((x > 400) && (x < 500) && (y > 800) && (y < 900)) pixelTemperatures[i] = MIN_TEMP;
   }
-  temp[DIM*100 + 100] = (MAX_TEMP + MIN_TEMP)/2;
-  temp[DIM*700 + 100] = MIN_TEMP;
-  temp[DIM*300 + 300] = MIN_TEMP;
-  temp[DIM*200 + 700] = MIN_TEMP;
-  for (int y = 800; y < 900; y++) {
-    for (int x = 400; x < 500; x++) {
-      temp[x+y*DIM] = MIN_TEMP;
+
+  // Set a few individual points to specific temperatures.
+  pixelTemperatures[DIM*100 + 100] = (MAX_TEMP + MIN_TEMP)/2;
+  pixelTemperatures[DIM*700 + 100] = MIN_TEMP;
+  pixelTemperatures[DIM*300 + 300] = MIN_TEMP;
+  pixelTemperatures[DIM*200 + 700] = MIN_TEMP;
+}
+
+void setInitialTemperatureData(float* pixelTemperatures) {
+  for (int x = 0; x < 200; x++) {
+    for (int y = 800; y < DIM; y++) {
+      pixelTemperatures[DIM*y + x] = MAX_TEMP;
     }
   }
-  HANDLE_ERROR(cudaMemcpy(data.dev_constSrc, temp, imageSize, cudaMemcpyHostToDevice));
-
-  // initialize the input data
-  for (int y = 800; y < DIM; y++) {
-    for (int x = 0; x < 200; x++) {
-      temp[x + y*DIM] = MAX_TEMP;
-    }
-  }
-  HANDLE_ERROR(cudaMemcpy(data.dev_inSrc, temp, imageSize, cudaMemcpyHostToDevice));
-  free(temp);
-
-  bitmap.anim_and_exit((void(*)(void*, int))anim_gpu, (void(*)(void*))anim_exit);
 }
 
-__global__ void blend_kernel(float *dst, bool dstOut) {
-
-  // Map from threadIdx/BlockIdx to pixel position.
-  int x = blockDim.x*blockIdx.x + threadIdx.x;
-  int y = blockDim.y*blockIdx.y + threadIdx.y;
-  int offset = (gridDim.x*blockDim.x)*y + x;
-
-  float up, left, middle, right, down;
-  if (dstOut) {
-    up = tex2D(texIn, x, y - 1);
-    left = tex2D(texIn, x - 1, y);
-    middle = tex2D(texIn, x, y);
-    right = tex2D(texIn, x + 1, y);
-    down = tex2D(texIn, x, y + 1);
-  }
-  else {
-    up = tex2D(texOut, x, y - 1);
-    left = tex2D(texOut, x - 1, y);
-    middle = tex2D(texOut, x, y);
-    right = tex2D(texOut, x + 1, y);
-    down = tex2D(texOut, x, y + 1);
-  }
-  dst[offset] = middle + SPEED*(up + down + left + right - 4*middle);
-}
-
-__global__ void copy_const_kernel(float *iptr) {
-
-  // Map from threadIdx/BlockIdx to pixel position.
-  int x = blockDim.x*blockIdx.x + threadIdx.x;
-  int y = blockDim.y*blockIdx.y + threadIdx.y;
-  int offset = (gridDim.x*blockDim.x)*y + x;
-
-  float c = tex2D(texConstSrc, x, y);
-  if (c != 0) { iptr[offset] = c; }
-}
-
-void anim_gpu(DataBlock *d, int ticks) {
+// Define a function to be executed for each frame update in the call to bitmap.anim_and_exit().
+void gpuUpdateFrame(DataBlock *d, int ticks) {
 
   HANDLE_ERROR(cudaEventRecord(d->start, 0));
 
   dim3 blocks(DIM/16, DIM/16);
   dim3 threads(16, 16);
-  CPUAnimBitmap  *bitmap = d->bitmap;
+ 
+  // Define which half of the ping-pong buffer to use for the given iteration.
+  volatile bool usePingAsInput = true;
 
-  // Since tex is global and bound, we have to use a flag to select which is in/out per iteration.
-  volatile bool dstOut = true;
-  for (int i = 0; i < 90; i++) {
-    float *in, *out;
-    if (dstOut) {
-      in = d->dev_inSrc;
-      out = d->dev_outSrc;
+  // Perform 90 iterations per screen refresh
+  for (int i = 0; i < 90; i++) { 
+    float *input, *output;
+    if (usePingAsInput) {
+      input = d->dev_pingImageData;
+      output = d->dev_pongImageData;
     }
     else {
-      out = d->dev_inSrc;
-      in = d->dev_outSrc;
+      input = d->dev_pongImageData;
+      output = d->dev_pingImageData;
     }
-    copy_const_kernel<<<blocks, threads>>>(in);
-    blend_kernel<<<blocks, threads>>>(out, dstOut);
-    dstOut = !dstOut;
+    resetConstantTemperaturePixels<<<blocks, threads>>>(input);
+    computeNextFrame<<<blocks, threads>>>(output, usePingAsInput);
+    usePingAsInput = !usePingAsInput;
   }
-  float_to_color<<<blocks, threads>>>(d->output_bitmap, d->dev_inSrc);
+  float_to_color<<<blocks, threads>>>(d->dev_outputBitmap, d->dev_pingImageData);
 
-  HANDLE_ERROR(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap, bitmap->image_size(), cudaMemcpyDeviceToHost));
+  // Copy the resulting image from the GPU back to the CPU.
+  CPUAnimBitmap* host_bitmap = d->host_bitmap;
+  HANDLE_ERROR(cudaMemcpy(host_bitmap->get_ptr(), d->dev_outputBitmap, host_bitmap->image_size(), cudaMemcpyDeviceToHost));
+
   HANDLE_ERROR(cudaEventRecord(d->stop, 0));
   HANDLE_ERROR(cudaEventSynchronize(d->stop));
   float elapsedTime;
   HANDLE_ERROR(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
   d->totalTime += elapsedTime;
-  ++d->frames;
-  printf("Average Time per frame: %3.1f ms\n", d->totalTime/d->frames);
+  d->nFrames++;
+  printf("Average time per frame: %3.1f ms\n", d->totalTime/d->nFrames);
 }
 
-// clean up memory allocated on the GPU
-void anim_exit(DataBlock *d) {
-  cudaUnbindTexture(texIn);
-  cudaUnbindTexture(texOut);
-  cudaUnbindTexture(texConstSrc);
-  HANDLE_ERROR(cudaFree(d->dev_inSrc));
-  HANDLE_ERROR(cudaFree(d->dev_outSrc));
-  HANDLE_ERROR(cudaFree(d->dev_constSrc));
+__global__ void resetConstantTemperaturePixels(float *pixelTemperatures) {
+
+  // Map from threadIdx/BlockIdx to pixel position.
+  int x = blockDim.x*blockIdx.x + threadIdx.x;
+  int y = blockDim.y*blockIdx.y + threadIdx.y;
+  int offset = (gridDim.x*blockDim.x)*y + x;
+
+  // Reset any pixels with a non-zero temperature in the constant texture to their original values.
+  // Note that the texture isn't actually constant. We just reset the data here for each iteration.
+  float t = tex2D(texConstantImage, x, y);
+  if (t != 0) { pixelTemperatures[offset] = t; }
+}
+
+__global__ void computeNextFrame(float *outputTemperatures, bool usePing) {
+
+  // Map from threadIdx/BlockIdx to pixel position.
+  int x = blockDim.x*blockIdx.x + threadIdx.x;
+  int y = blockDim.y*blockIdx.y + threadIdx.y;
+  int offset = (gridDim.x*blockDim.x)*y + x;
+
+  // Get the neighboring values from the appropriate texture.
+  float up, left, middle, right, down;
+  if (usePing) {
+    up = tex2D(texPingImage, x, y - 1);
+    left = tex2D(texPingImage, x - 1, y);
+    middle = tex2D(texPingImage, x, y);
+    right = tex2D(texPingImage, x + 1, y);
+    down = tex2D(texPingImage, x, y + 1);
+  }
+  else {
+    up = tex2D(texPongImage, x, y - 1);
+    left = tex2D(texPongImage, x - 1, y);
+    middle = tex2D(texPongImage, x, y);
+    right = tex2D(texPongImage, x + 1, y);
+    down = tex2D(texPongImage, x, y + 1);
+  }
+
+  // Compute the new temperature for the current pixel.
+  outputTemperatures[offset] = middle + SPEED*(up + down + left + right - 4*middle);
+}
+
+// Define a function to clean up GPU memory at the end of the call to bitmap.anim_and_exit().
+void gpuExitAnimation(DataBlock *d) {
+  cudaUnbindTexture(texPingImage);
+  cudaUnbindTexture(texPongImage);
+  cudaUnbindTexture(texConstantImage);
+  HANDLE_ERROR(cudaFree(d->dev_pingImageData));
+  HANDLE_ERROR(cudaFree(d->dev_pongImageData));
+  HANDLE_ERROR(cudaFree(d->dev_constantImageData));
   HANDLE_ERROR(cudaEventDestroy(d->start));
   HANDLE_ERROR(cudaEventDestroy(d->stop));
 }
