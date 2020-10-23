@@ -13,7 +13,6 @@
  *
  */
 
-
 #include "cuda.h"
 #include "../common/book.h"
 #include "../common/cpu_anim.h"
@@ -22,48 +21,15 @@
 #define PI 3.1415926535897932f
 #define MAX_TEMP 1.0f
 #define MIN_TEMP 0.0001f
-#define SPEED   0.25f
+#define SPEED 0.25f
 
  // these exist on the GPU side
-texture<float, 2>  texConstSrc;
-texture<float, 2>  texIn;
-texture<float, 2>  texOut;
+texture<float, 2> texConstSrc;
+texture<float, 2> texIn;
+texture<float, 2> texOut;
 
-__global__ void blend_kernel(float *dst, bool dstOut) {
-
-  // Map from threadIdx/BlockIdx to pixel position.
-  int x = blockDim.x*blockIdx.x + threadIdx.x;
-  int y = blockDim.y*blockIdx.y + threadIdx.y;
-  int offset = (gridDim.x*blockDim.x)*y + x;
-
-  float t, l, c, r, b;
-  if (dstOut) {
-    t = tex2D(texIn, x, y - 1);
-    l = tex2D(texIn, x - 1, y);
-    c = tex2D(texIn, x, y);
-    r = tex2D(texIn, x + 1, y);
-    b = tex2D(texIn, x, y + 1);
-  }
-  else {
-    t = tex2D(texOut, x, y - 1);
-    l = tex2D(texOut, x - 1, y);
-    c = tex2D(texOut, x, y);
-    r = tex2D(texOut, x + 1, y);
-    b = tex2D(texOut, x, y + 1);
-  }
-  dst[offset] = c + SPEED*(t + b + r + l - 4*c);
-}
-
-__global__ void copy_const_kernel(float *iptr) {
-
-  // Map from threadIdx/BlockIdx to pixel position.
-  int x = blockDim.x*blockIdx.x + threadIdx.x;
-  int y = blockDim.y*blockIdx.y + threadIdx.y;
-  int offset = (gridDim.x*blockDim.x)*y + x;
-
-  float c = tex2D(texConstSrc, x, y);
-  if (c != 0) { iptr[offset] = c; }
-}
+__global__ void blend_kernel(float *dst, bool dstOut);
+__global__ void copy_const_kernel(float *iptr);
 
 // Globals needed by the update routine.
 struct DataBlock {
@@ -72,62 +38,16 @@ struct DataBlock {
   float *dev_outSrc;
   float *dev_constSrc;
   CPUAnimBitmap *bitmap;
-
   cudaEvent_t start, stop;
   float totalTime;
   float frames;
 };
 
-void anim_gpu(DataBlock *d, int ticks) {
-
-  HANDLE_ERROR(cudaEventRecord(d->start, 0));
-
-  dim3 blocks(DIM/16, DIM/16);
-  dim3 threads(16, 16);
-  CPUAnimBitmap  *bitmap = d->bitmap;
-
-  // Since tex is global and bound, we have to use a flag to select which is in/out per iteration.
-  volatile bool dstOut = true;
-  for (int i = 0; i < 90; i++) {
-    float *in, *out;
-    if (dstOut) {
-      in = d->dev_inSrc;
-      out = d->dev_outSrc;
-    }
-    else {
-      out = d->dev_inSrc;
-      in = d->dev_outSrc;
-    }
-    copy_const_kernel<<<blocks, threads>>>(in);
-    blend_kernel<<<blocks, threads>>>(out, dstOut);
-    dstOut = !dstOut;
-  }
-  float_to_color<<<blocks, threads>>>(d->output_bitmap, d->dev_inSrc);
-
-  HANDLE_ERROR(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap, bitmap->image_size(), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR(cudaEventRecord(d->stop, 0));
-  HANDLE_ERROR(cudaEventSynchronize(d->stop));
-  float elapsedTime;
-  HANDLE_ERROR(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
-  d->totalTime += elapsedTime;
-  ++d->frames;
-  printf("Average Time per frame: %3.1f ms\n", d->totalTime/d->frames);
-}
-
-// clean up memory allocated on the GPU
-void anim_exit(DataBlock *d) {
-  cudaUnbindTexture(texIn);
-  cudaUnbindTexture(texOut);
-  cudaUnbindTexture(texConstSrc);
-  HANDLE_ERROR(cudaFree(d->dev_inSrc));
-  HANDLE_ERROR(cudaFree(d->dev_outSrc));
-  HANDLE_ERROR(cudaFree(d->dev_constSrc));
-  HANDLE_ERROR(cudaEventDestroy(d->start));
-  HANDLE_ERROR(cudaEventDestroy(d->stop));
-}
-
+void anim_gpu(DataBlock *d, int ticks);
+void anim_exit(DataBlock *d);
 
 int main(void) {
+
   DataBlock data;
   CPUAnimBitmap bitmap(DIM, DIM, &data);
   data.bitmap = &bitmap;
@@ -180,4 +100,88 @@ int main(void) {
   free(temp);
 
   bitmap.anim_and_exit((void(*)(void*, int))anim_gpu, (void(*)(void*))anim_exit);
+}
+
+__global__ void blend_kernel(float *dst, bool dstOut) {
+
+  // Map from threadIdx/BlockIdx to pixel position.
+  int x = blockDim.x*blockIdx.x + threadIdx.x;
+  int y = blockDim.y*blockIdx.y + threadIdx.y;
+  int offset = (gridDim.x*blockDim.x)*y + x;
+
+  float up, left, middle, right, down;
+  if (dstOut) {
+    up = tex2D(texIn, x, y - 1);
+    left = tex2D(texIn, x - 1, y);
+    middle = tex2D(texIn, x, y);
+    right = tex2D(texIn, x + 1, y);
+    down = tex2D(texIn, x, y + 1);
+  }
+  else {
+    up = tex2D(texOut, x, y - 1);
+    left = tex2D(texOut, x - 1, y);
+    middle = tex2D(texOut, x, y);
+    right = tex2D(texOut, x + 1, y);
+    down = tex2D(texOut, x, y + 1);
+  }
+  dst[offset] = middle + SPEED*(up + down + left + right - 4*middle);
+}
+
+__global__ void copy_const_kernel(float *iptr) {
+
+  // Map from threadIdx/BlockIdx to pixel position.
+  int x = blockDim.x*blockIdx.x + threadIdx.x;
+  int y = blockDim.y*blockIdx.y + threadIdx.y;
+  int offset = (gridDim.x*blockDim.x)*y + x;
+
+  float c = tex2D(texConstSrc, x, y);
+  if (c != 0) { iptr[offset] = c; }
+}
+
+void anim_gpu(DataBlock *d, int ticks) {
+
+  HANDLE_ERROR(cudaEventRecord(d->start, 0));
+
+  dim3 blocks(DIM/16, DIM/16);
+  dim3 threads(16, 16);
+  CPUAnimBitmap  *bitmap = d->bitmap;
+
+  // Since tex is global and bound, we have to use a flag to select which is in/out per iteration.
+  volatile bool dstOut = true;
+  for (int i = 0; i < 90; i++) {
+    float *in, *out;
+    if (dstOut) {
+      in = d->dev_inSrc;
+      out = d->dev_outSrc;
+    }
+    else {
+      out = d->dev_inSrc;
+      in = d->dev_outSrc;
+    }
+    copy_const_kernel<<<blocks, threads>>>(in);
+    blend_kernel<<<blocks, threads>>>(out, dstOut);
+    dstOut = !dstOut;
+  }
+  float_to_color<<<blocks, threads>>>(d->output_bitmap, d->dev_inSrc);
+
+  HANDLE_ERROR(cudaMemcpy(bitmap->get_ptr(), d->output_bitmap, bitmap->image_size(), cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaEventRecord(d->stop, 0));
+  HANDLE_ERROR(cudaEventSynchronize(d->stop));
+  float elapsedTime;
+  HANDLE_ERROR(cudaEventElapsedTime(&elapsedTime, d->start, d->stop));
+  d->totalTime += elapsedTime;
+  ++d->frames;
+  printf("Average Time per frame: %3.1f ms\n", d->totalTime/d->frames);
+}
+
+// clean up memory allocated on the GPU
+void anim_exit(DataBlock *d) {
+  cudaUnbindTexture(texIn);
+  cudaUnbindTexture(texOut);
+  cudaUnbindTexture(texConstSrc);
+  HANDLE_ERROR(cudaFree(d->dev_inSrc));
+  HANDLE_ERROR(cudaFree(d->dev_outSrc));
+  HANDLE_ERROR(cudaFree(d->dev_constSrc));
+  HANDLE_ERROR(cudaEventDestroy(d->start));
+  HANDLE_ERROR(cudaEventDestroy(d->stop));
 }
