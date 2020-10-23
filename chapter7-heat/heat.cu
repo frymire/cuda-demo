@@ -34,7 +34,7 @@ struct DataBlock {
   float* dev_pingImageData; // ping-pong buffer for the image data
   float* dev_pongImageData;
   unsigned char* dev_outputBitmap;
-  CPUAnimBitmap* host_bitmap;
+  CPUAnimBitmap* host_animator;
 };
 
 void setConstantTemperatureData(float* pixelTemperatures);
@@ -56,10 +56,10 @@ int main(void) {
   HANDLE_ERROR(cudaEventCreate(&data.stop));
   data.totalTime = 0;
   data.nFrames = 0;
-  CPUAnimBitmap host_bitmap(DIM, DIM, &data);
-  data.host_bitmap = &host_bitmap;
+  CPUAnimBitmap theAnimator(DIM, DIM, &data);
+  data.host_animator = &theAnimator;
 
-  int nImageBytes = host_bitmap.image_size();
+  int nImageBytes = theAnimator.image_size();
   HANDLE_ERROR(cudaMalloc((void**) &data.dev_constantImageData, nImageBytes));
   HANDLE_ERROR(cudaMalloc((void**) &data.dev_pingImageData, nImageBytes));
   HANDLE_ERROR(cudaMalloc((void**) &data.dev_pongImageData, nImageBytes));
@@ -83,7 +83,7 @@ int main(void) {
 
   // When you run it, the temperature in the constant regions does not change, 
   // while that in the region set by the setInitialTemperatureData() does.
-  host_bitmap.anim_and_exit( (void(*)(void*, int)) gpuUpdateFrame, (void(*)(void*)) gpuExitAnimation );
+  theAnimator.anim_and_exit( (void(*)(void*, int)) gpuUpdateFrame, (void(*)(void*)) gpuExitAnimation );
 }
 
 void setConstantTemperatureData(float* pixelTemperatures) {
@@ -141,8 +141,8 @@ void gpuUpdateFrame(DataBlock *d, int ticks) {
   float_to_color<<<blocks, threads>>>(d->dev_outputBitmap, d->dev_pingImageData);
 
   // Copy the resulting image from the GPU back to the CPU.
-  CPUAnimBitmap* host_bitmap = d->host_bitmap;
-  HANDLE_ERROR(cudaMemcpy(host_bitmap->get_ptr(), d->dev_outputBitmap, host_bitmap->image_size(), cudaMemcpyDeviceToHost));
+  CPUAnimBitmap* host_animator = d->host_animator;
+  HANDLE_ERROR(cudaMemcpy(host_animator->get_ptr(), d->dev_outputBitmap, host_animator->image_size(), cudaMemcpyDeviceToHost));
 
   HANDLE_ERROR(cudaEventRecord(d->stop, 0));
   HANDLE_ERROR(cudaEventSynchronize(d->stop));
