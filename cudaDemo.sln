@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter5-sharedMemoryBitmap
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter6-rayTracing", "chapter6-rayTracing\chapter6-rayTracing.vcxproj", "{34B3651A-C8C0-4BE0-A4A5-C1BAFDF82CDF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter7-heat", "chapter7-heat\chapter7-heat.vcxproj", "{751BC61C-BFA8-4823-9563-ADB1BEF1909D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +73,10 @@ Global
 		{34B3651A-C8C0-4BE0-A4A5-C1BAFDF82CDF}.Debug|x64.Build.0 = Debug|x64
 		{34B3651A-C8C0-4BE0-A4A5-C1BAFDF82CDF}.Release|x64.ActiveCfg = Release|x64
 		{34B3651A-C8C0-4BE0-A4A5-C1BAFDF82CDF}.Release|x64.Build.0 = Release|x64
+		{751BC61C-BFA8-4823-9563-ADB1BEF1909D}.Debug|x64.ActiveCfg = Debug|x64
+		{751BC61C-BFA8-4823-9563-ADB1BEF1909D}.Debug|x64.Build.0 = Debug|x64
+		{751BC61C-BFA8-4823-9563-ADB1BEF1909D}.Release|x64.ActiveCfg = Release|x64
+		{751BC61C-BFA8-4823-9563-ADB1BEF1909D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
