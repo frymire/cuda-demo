@@ -11,10 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{751BC61C-BFA8-4823-9563-ADB1BEF1909D}</ProjectGuid>
-    <RootNamespace>chapter7_heat</RootNamespace>
+    <ProjectGuid>{9175418F-CD30-41C9-BC69-02E271668A92}</ProjectGuid>
+    <RootNamespace>chapter7_heat1D</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
-    <ProjectName>chapter7-heat2D</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -81,7 +80,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="heat2D.cu" />
+    <CudaCompile Include="heat1D.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -173,7 +173,8 @@ __global__ void computeNextFrame(float *outputTemperatures, bool usePing) {
   int y = blockDim.y*blockIdx.y + threadIdx.y;
   int offset = (gridDim.x*blockDim.x)*y + x;
 
-  // Get the neighboring values from the appropriate texture.
+  // Get the neighboring values from the appropriate texture. Note that 
+  // referencing an element out of the texture bounds returns 0.
   float up, left, middle, right, down;
   if (usePing) {
     up = tex2D(texPingImage, x, y - 1);
