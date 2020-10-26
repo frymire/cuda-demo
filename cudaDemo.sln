@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter7-heat2D", "chapter7
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter7-heat1D", "chapter7-heat1D\chapter7-heat1D.vcxproj", "{9175418F-CD30-41C9-BC69-02E271668A92}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter9-histogram", "chapter9-histogram\chapter9-histogram.vcxproj", "{CD3F1257-8242-4E19-AB10-A57FA8CFCE5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -83,6 +85,10 @@ Global
 		{9175418F-CD30-41C9-BC69-02E271668A92}.Debug|x64.Build.0 = Debug|x64
 		{9175418F-CD30-41C9-BC69-02E271668A92}.Release|x64.ActiveCfg = Release|x64
 		{9175418F-CD30-41C9-BC69-02E271668A92}.Release|x64.Build.0 = Release|x64
+		{CD3F1257-8242-4E19-AB10-A57FA8CFCE5E}.Debug|x64.ActiveCfg = Debug|x64
+		{CD3F1257-8242-4E19-AB10-A57FA8CFCE5E}.Debug|x64.Build.0 = Debug|x64
+		{CD3F1257-8242-4E19-AB10-A57FA8CFCE5E}.Release|x64.ActiveCfg = Release|x64
+		{CD3F1257-8242-4E19-AB10-A57FA8CFCE5E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -13,7 +13,6 @@
  *
  */
 
-
  //#ifndef __BOOK_H__
  //#define __BOOK_H__
 #include <stdio.h>
@@ -30,7 +29,6 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 }
 #define HANDLE_ERROR(err) (HandleError(err, __FILE__, __LINE__ ))
 
-
 #define HANDLE_NULL(a) {if (a == NULL) { \
 	printf( "Host memory failed in %s at line %d\n", __FILE__, __LINE__ ); \
   exit(EXIT_FAILURE);}}
@@ -42,23 +40,17 @@ void swap(T& a, T& b) {
 	b = t;
 }
 
-
 void* big_random_block(int size) {
-	unsigned char *data = (unsigned char *) malloc(size);
+	unsigned char* data = (unsigned char*) malloc(size);
 	HANDLE_NULL(data);
-	for (int i = 0; i < size; i++) {
-		data[i] = rand();
-	}	
-
+	for (int i = 0; i < size; i++) { data[i] = rand(); }	
 	return data;
 }
 
 int* big_random_block_int(int size) {
-	int *data = (int *)  malloc(size*sizeof(int));
+	int* data = (int*)  malloc(size*sizeof(int));
 	HANDLE_NULL(data);
-	for (int i = 0; i < size; i++)
-		data[i] = rand();
-
+	for (int i = 0; i < size; i++) data[i] = rand();
 	return data;
 }
 
