@@ -17,7 +17,7 @@
 
 #define imin(a,b) (a < b ? a : b)
 
-const int N = 33*1024;
+const int N = 33*1024*1024;
 const int nThreadsPerBlock = 256;
 const int nBlocks = imin(32, (N + nThreadsPerBlock - 1) / nThreadsPerBlock);
 const int nDataBytes = N*sizeof(float);

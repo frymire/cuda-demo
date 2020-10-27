@@ -39,6 +39,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter10-doubleStreamIncor
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter11-zeroCopyMemory", "chapter11-zeroCopyMemory\chapter11-zeroCopyMemory.vcxproj", "{6347B474-2705-4FBB-9ED1-C50ED2840FAD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter11-multiGPU", "chapter11-multiGPU\chapter11-multiGPU.vcxproj", "{662F83C2-2CBB-4792-A874-46606D803269}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -113,6 +115,10 @@ Global
 		{6347B474-2705-4FBB-9ED1-C50ED2840FAD}.Debug|x64.Build.0 = Debug|x64
 		{6347B474-2705-4FBB-9ED1-C50ED2840FAD}.Release|x64.ActiveCfg = Release|x64
 		{6347B474-2705-4FBB-9ED1-C50ED2840FAD}.Release|x64.Build.0 = Release|x64
+		{662F83C2-2CBB-4792-A874-46606D803269}.Debug|x64.ActiveCfg = Debug|x64
+		{662F83C2-2CBB-4792-A874-46606D803269}.Debug|x64.Build.0 = Debug|x64
+		{662F83C2-2CBB-4792-A874-46606D803269}.Release|x64.ActiveCfg = Release|x64
+		{662F83C2-2CBB-4792-A874-46606D803269}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
