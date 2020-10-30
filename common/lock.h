@@ -30,9 +30,13 @@ struct Lock {
   // Spin until an atomic compare-and-swap call returns a 0, indicating that no one else has a lock.
   __device__ void lock(void) {
     while (atomicCAS(mutex, 0, 1) != 0);
+    __threadfence();
   }
 
-  __device__ void unlock(void) { atomicExch(mutex, 0); }
+  __device__ void unlock(void) { 
+    __threadfence(); 
+    atomicExch(mutex, 0); 
+  }
 };
 
 #endif

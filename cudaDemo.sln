@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "defaultNSightDemo", "cudaDe
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcxitems", "{E7A0253F-6734-4392-B1CE-3088ABE56308}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter3", "chapter3\chapter3.vcxproj", "{229F2F78-4C27-4ECA-BE37-35BBE8491183}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter3-deviceProperties", "chapter3\chapter3.vcxproj", "{229F2F78-4C27-4ECA-BE37-35BBE8491183}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter4-addLoop", "chapter4\chapter4.vcxproj", "{06CB1171-A802-457D-8A87-EECA82453C8C}"
 EndProject
@@ -44,6 +44,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter11-portablePinnedMemory", "chapter11-portablePinnedMemory\chapter11-portablePinnedMemory.vcxproj", "{BEBD2230-4E40-4089-A00B-CE142E2BCB82}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "appendix-atomicLocks", "appendix-atomicLocks\appendix-atomicLocks.vcxproj", "{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "appendix-hashTableCPU", "appendix-hashTableCPU\appendix-hashTableCPU.vcxproj", "{9839751D-1F83-411E-B307-5424622060D5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "appendix-hashTableGPU", "appendix-hashTableGPU\appendix-hashTableGPU.vcxproj", "{D4480CFA-686F-4F76-BDEE-F3E0D3DFA941}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -131,6 +135,14 @@ Global
 		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Debug|x64.Build.0 = Debug|x64
 		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Release|x64.ActiveCfg = Release|x64
 		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Release|x64.Build.0 = Release|x64
+		{9839751D-1F83-411E-B307-5424622060D5}.Debug|x64.ActiveCfg = Debug|x64
+		{9839751D-1F83-411E-B307-5424622060D5}.Debug|x64.Build.0 = Debug|x64
+		{9839751D-1F83-411E-B307-5424622060D5}.Release|x64.ActiveCfg = Release|x64
+		{9839751D-1F83-411E-B307-5424622060D5}.Release|x64.Build.0 = Release|x64
+		{D4480CFA-686F-4F76-BDEE-F3E0D3DFA941}.Debug|x64.ActiveCfg = Debug|x64
+		{D4480CFA-686F-4F76-BDEE-F3E0D3DFA941}.Debug|x64.Build.0 = Debug|x64
+		{D4480CFA-686F-4F76-BDEE-F3E0D3DFA941}.Release|x64.ActiveCfg = Release|x64
+		{D4480CFA-686F-4F76-BDEE-F3E0D3DFA941}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
