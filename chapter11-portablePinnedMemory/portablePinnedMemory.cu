@@ -17,7 +17,7 @@
 
 #include "../common/book.h"
 
-#define imin(a, b) (a < b ? a : b)
+#define imin(in0, in1) (in0 < in1 ? in0 : in1)
 #define N (33*1024*1024)
 const int threadsPerBlock = 256;
 const int nBlocks = imin(32, (N/2 + threadsPerBlock - 1) / threadsPerBlock);
@@ -26,13 +26,13 @@ struct DataStruct {
   int deviceID;
   int size;
   int offset;
-  float* a;
-  float* b;
+  float* in0;
+  float* in1;
   float returnValue;
 };
 
 unsigned WINAPI taskGPU(void *gpuTask);
-__global__ void gpuComputeDotProduct(int size, float *a, float *b, float *c);
+__global__ void gpuComputeDotProduct(int size, float *in0, float *in1, float *out);
 
 int main(void) {
 
@@ -46,12 +46,14 @@ int main(void) {
   cudaDeviceProp gpuProperties;
   for (int i = 0; i < 2; i++) {
     HANDLE_ERROR(cudaGetDeviceProperties(&gpuProperties, i));
-    if (gpuProperties.canMapHostMemory != 1) {
-      printf("Device %d can not map memory.\n", i);
+    if (!gpuProperties.canMapHostMemory) {
+      printf("Device %d cannot map memory.\n", i);
       return 0;
     }
   }
 
+  // It would be cleaner to do this at the task level within taskGPU(). However, we must first set 
+  // the cudaDeviceMapHost flag before we can allocate portable pinned memory using cudaHostAlloc().
   HANDLE_ERROR(cudaSetDevice(0));
   HANDLE_ERROR(cudaSetDeviceFlags(cudaDeviceMapHost));
 
@@ -66,19 +68,21 @@ int main(void) {
     b[i] = 2*i;
   }
 
-  // prepare for multithread
+  // Define task parameters for each GPU, passing CPU pointers to in0 and in1 on the GPU.
+
   DataStruct data[2];
+
   data[0].deviceID = 0;
   data[0].offset = 0;
   data[0].size = N/2;
-  data[0].a = a;
-  data[0].b = b;
+  data[0].in0 = a;
+  data[0].in1 = b;
 
   data[1].deviceID = 1;
   data[1].offset = N/2;
   data[1].size = N/2;
-  data[1].a = a;
-  data[1].b = b;
+  data[1].in0 = a;
+  data[1].in1 = b;
 
   CUTThread thread = start_thread(taskGPU, &(data[1]));
   taskGPU(&(data[0]));
@@ -88,23 +92,27 @@ int main(void) {
   HANDLE_ERROR(cudaFreeHost(a));
   HANDLE_ERROR(cudaFreeHost(b));
 
-  printf("Value calculated:  %f\n", data[0].returnValue + data[1].returnValue);
-  printf("Should be:\t%f.\n", 27621693407370839851008.0f);
+  printf("Value calculated: \t%f\n", data[0].returnValue + data[1].returnValue);
+  printf("Should be:\t\t%f.\n", 27621693407370839851008.0f);
   return 0;
 }
 
 unsigned WINAPI taskGPU(void *gpuData) {
 
-  DataStruct* data = (DataStruct*) gpuData;
+  DataStruct* taskData = (DataStruct*) gpuData;
 
-  if (data->deviceID != 0) {
-    HANDLE_ERROR(cudaSetDevice(data->deviceID));
+  // Again, it would be nicer if we could just set the device here, rather than in main. It was necessary
+  // to set device 0 in main, however, so that we could allocate portable pinned host memory. Another subtle
+  // point here though is that you can only call cudaSetDevice() once per thread. Here, therefore, we have to
+  // check whether we are already on device 0, since that was set in main.
+  if (taskData->deviceID != 0) {
+    HANDLE_ERROR(cudaSetDevice(taskData->deviceID));
     HANDLE_ERROR(cudaSetDeviceFlags(cudaDeviceMapHost));
   }
 
-  // Allocate CPU memory.
-  float* a = data->a;
-  float* b = data->b;
+  // Reference the data in CPU memory.
+  float* a = taskData->in0;
+  float* b = taskData->in1;
   float* partialC = (float*) malloc(nBlocks*sizeof(float));
 
   // Allocate GPU memory.
@@ -114,10 +122,10 @@ unsigned WINAPI taskGPU(void *gpuData) {
   HANDLE_ERROR(cudaMalloc((void**) &gpuPartialC, nBlocks*sizeof(float)));
 
   // offset 'a' and 'b' to where this GPU is gets it data
-  gpuA += data->offset;
-  gpuB += data->offset;
+  gpuA += taskData->offset;
+  gpuB += taskData->offset;
 
-  int size = data->size;
+  int size = taskData->size;
   gpuComputeDotProduct<<<nBlocks, threadsPerBlock>>>(size, gpuA, gpuB, gpuPartialC);
 
   // Copy array c from the GPU to the CPU.
@@ -126,7 +134,7 @@ unsigned WINAPI taskGPU(void *gpuData) {
   // Complete the dot product calculation on the CPU.
   float dotProduct = 0;
   for (int i = 0; i < nBlocks; i++) { dotProduct += partialC[i]; }
-  data->returnValue = dotProduct;
+  taskData->returnValue = dotProduct;
 
   HANDLE_ERROR(cudaFree(gpuPartialC));
   free(partialC);
@@ -134,20 +142,20 @@ unsigned WINAPI taskGPU(void *gpuData) {
   return 0;
 }
 
-__global__ void gpuComputeDotProduct(int size, float *a, float *b, float *c) {
+__global__ void gpuComputeDotProduct(int size, float *in0, float *in1, float *out) {
 
   __shared__ float cache[threadsPerBlock];
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   int cacheIndex = threadIdx.x;
 
-  float   temp = 0;
+  float threadwiseDotProduct = 0;
   while (tid < size) {
-    temp += a[tid] * b[tid];
+    threadwiseDotProduct += in0[tid] * in1[tid];
     tid += blockDim.x * gridDim.x;
   }
 
   // set the cache values
-  cache[cacheIndex] = temp;
+  cache[cacheIndex] = threadwiseDotProduct;
 
   // synchronize threads in this block
   __syncthreads();
@@ -156,12 +164,10 @@ __global__ void gpuComputeDotProduct(int size, float *a, float *b, float *c) {
   // because of the following code
   int i = blockDim.x/2;
   while (i != 0) {
-    if (cacheIndex < i)
-      cache[cacheIndex] += cache[cacheIndex + i];
+    if (cacheIndex < i) { cache[cacheIndex] += cache[cacheIndex + i]; }
     __syncthreads();
     i /= 2;
   }
 
-  if (cacheIndex == 0)
-    c[blockIdx.x] = cache[0];
+  if (cacheIndex == 0) { out[blockIdx.x] = cache[0]; }
 }
