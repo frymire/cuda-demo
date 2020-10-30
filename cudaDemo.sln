@@ -43,6 +43,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter11-multiGPU", "chapt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chapter11-portablePinnedMemory", "chapter11-portablePinnedMemory\chapter11-portablePinnedMemory.vcxproj", "{BEBD2230-4E40-4089-A00B-CE142E2BCB82}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "appendix-atomicLocks", "appendix-atomicLocks\appendix-atomicLocks.vcxproj", "{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -125,6 +127,10 @@ Global
 		{BEBD2230-4E40-4089-A00B-CE142E2BCB82}.Debug|x64.Build.0 = Debug|x64
 		{BEBD2230-4E40-4089-A00B-CE142E2BCB82}.Release|x64.ActiveCfg = Release|x64
 		{BEBD2230-4E40-4089-A00B-CE142E2BCB82}.Release|x64.Build.0 = Release|x64
+		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Debug|x64.ActiveCfg = Debug|x64
+		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Debug|x64.Build.0 = Debug|x64
+		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Release|x64.ActiveCfg = Release|x64
+		{9A33C0C1-FF6D-4197-9C4B-9629BDFF4F80}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

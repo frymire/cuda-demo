@@ -21,5 +21,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)GL\glut.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)gl_helper.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)gpu_anim.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)lock.h" />
   </ItemGroup>
 </Project>
