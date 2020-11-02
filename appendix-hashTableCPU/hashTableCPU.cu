@@ -13,13 +13,11 @@
  *
  */
 
-// compile with:  nvcc -O3 hashtable_cpu.cu
-
 #include "../common/book.h"
 
-#define SIZE (100*1024*1024)
-#define ELEMENTS (SIZE / sizeof(unsigned int))
-#define HASH_ENTRIES 1024
+#define nBytesData (100*1024*1024)
+#define nData (nBytesData / sizeof(unsigned int))
+#define nBins 1024
 
 struct Entry {
   unsigned int key;
@@ -27,78 +25,76 @@ struct Entry {
   Entry* next;
 };
 
-struct Table {
-  size_t count;
-  Entry** entries;
-  Entry* pool;
-  Entry* firstFree;
+struct HashTable {
+  Entry** bins;
+  Entry* entryPool;
+  Entry* nextEntryAvailableInPool;
 };
 
-size_t hash(unsigned int key, size_t count) { return key % count; }
-void initializeTable(Table &table, int entries, int elements);
-void addToTable(Table &table, unsigned int key, void *value);
-void verifyTable(const Table &table);
-void freeTable(Table &table);
+size_t computeHash(unsigned int key) { return key % nBins; }
+void initializeTable(HashTable &table, int elements);
+void addEntryToTable(HashTable &table, unsigned int key, void *value);
+void verifyTable(const HashTable &table);
+void freeTable(HashTable &table);
 
 int main(void) {
 
-  unsigned int* buffer = (unsigned int*) big_random_block(SIZE);
+  unsigned int* data = (unsigned int*) big_random_block(nBytesData);
 
-  Table table;
-  initializeTable(table, HASH_ENTRIES, ELEMENTS);
+  HashTable table;
+  initializeTable(table, nData);
 
   clock_t start = clock();
-  for (int i = 0; i < ELEMENTS; i++) { addToTable(table, buffer[i], (void*) NULL); }
+  for (int i = 0; i < nData; i++) { addEntryToTable(table, data[i], (void*) NULL); }
   float elapsedTime = (float) (clock() - start) / (float) CLOCKS_PER_SEC*1000.0f;
-  printf("Time to hash:  %3.1f ms\n", elapsedTime);
+  printf("Time to hash: %3.1f ms\n", elapsedTime);
   
   verifyTable(table);
 
   freeTable(table);
-  free(buffer);
+  free(data);
   return 0;
 }
 
-void initializeTable(Table &table, int entries, int elements) {
-  table.count = entries;
-  table.entries = (Entry**) calloc(entries, sizeof(Entry*));
-  table.pool = (Entry*) malloc(elements * sizeof(Entry));
-  table.firstFree = table.pool;
+void initializeTable(HashTable &table, int nElements) {
+  table.bins = (Entry**) calloc(nBins, sizeof(Entry*));
+  table.entryPool = (Entry*) malloc(nElements*sizeof(Entry));
+  table.nextEntryAvailableInPool = table.entryPool;
 }
 
-void addToTable(Table &table, unsigned int key, void *value) {
-  size_t hashValue = hash(key, table.count);
-  Entry *location = table.firstFree++;
-  location->key = key;
-  location->value = value;
-  location->next = table.entries[hashValue];
-  table.entries[hashValue] = location;
+void addEntryToTable(HashTable &table, unsigned int key, void *value) {
+  Entry* p_entry = table.nextEntryAvailableInPool++;
+  p_entry->key = key;
+  p_entry->value = value;
+  size_t hashValue = computeHash(key);
+  p_entry->next = table.bins[hashValue];
+  table.bins[hashValue] = p_entry;
 }
 
-void verifyTable(const Table &table) {
+void verifyTable(const HashTable &table) {
 
-  int count = 0;
+  int entryCount = 0;
 
-  for (size_t i = 0; i < table.count; i++) {
+  for (size_t i = 0; i < nBins; i++) {
 
-    Entry* current = table.entries[i];
-    while (current != NULL) {
-      count++;
-      if (hash(current->key, table.count) != i) {
-        printf("%d hashed to %ld, but was located at %ld\n", current->key, hash(current->key, table.count), i);
+    Entry* pCurrentEntry = table.bins[i];
+    while (pCurrentEntry != NULL) {
+      entryCount++;
+      if (computeHash(pCurrentEntry->key) != i) {
+        printf("%d hashed to %ld, but was located at %ld\n", pCurrentEntry->key, computeHash(pCurrentEntry->key), i);
       }
-      current = current->next;
+      pCurrentEntry = pCurrentEntry->next;
     }
   }
 
-  if (count != ELEMENTS) {
-    printf("%d elements found in hash table.  Should be %ld\n", count, ELEMENTS);
+  if (entryCount != nData) {
+    printf("%d elements found in hash table.  Should be %ld\n", entryCount, nData);
   } else {
-    printf("All %d elements found in hash table.\n", count);
+    printf("All %d elements found in hash table.\n", entryCount);
   }
 }
 
-void freeTable(Table &table) {
-  free(table.entries);
-  free(table.pool);
+void freeTable(HashTable &table) {
+  free(table.bins);
+  free(table.entryPool);
 }
