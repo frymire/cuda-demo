@@ -15,7 +15,7 @@
 
 #include "../common/book.h"
 
-#define nBytesData (100*1024*1024)
+#define nBytesData 100*1024*1024
 #define nData (nBytesData / sizeof(unsigned int))
 #define nBins 1024
 
@@ -32,7 +32,7 @@ struct HashTable {
 };
 
 size_t computeHash(unsigned int key) { return key % nBins; }
-void initializeTable(HashTable &table, int elements);
+void initializeTable(HashTable &table);
 void addEntryToTable(HashTable &table, unsigned int key, void *value);
 void verifyTable(const HashTable &table);
 void freeTable(HashTable &table);
@@ -42,7 +42,7 @@ int main(void) {
   unsigned int* data = (unsigned int*) big_random_block(nBytesData);
 
   HashTable table;
-  initializeTable(table, nData);
+  initializeTable(table);
 
   clock_t start = clock();
   for (int i = 0; i < nData; i++) { addEntryToTable(table, data[i], (void*) NULL); }
@@ -56,9 +56,9 @@ int main(void) {
   return 0;
 }
 
-void initializeTable(HashTable &table, int nElements) {
+void initializeTable(HashTable &table) {
   table.bins = (Entry**) calloc(nBins, sizeof(Entry*));
-  table.entryPool = (Entry*) malloc(nElements*sizeof(Entry));
+  table.entryPool = (Entry*) malloc(nData*sizeof(Entry));
   table.nextEntryAvailableInPool = table.entryPool;
 }
 
@@ -77,13 +77,13 @@ void verifyTable(const HashTable &table) {
 
   for (size_t i = 0; i < nBins; i++) {
 
-    Entry* pCurrentEntry = table.bins[i];
-    while (pCurrentEntry != NULL) {
+    Entry* p_entry = table.bins[i];
+    while (p_entry != NULL) {
       entryCount++;
-      if (computeHash(pCurrentEntry->key) != i) {
-        printf("%d hashed to %ld, but was located at %ld\n", pCurrentEntry->key, computeHash(pCurrentEntry->key), i);
+      if (computeHash(p_entry->key) != i) {
+        printf("%d hashed to %ld, but was located at %ld\n", p_entry->key, computeHash(p_entry->key), i);
       }
-      pCurrentEntry = pCurrentEntry->next;
+      p_entry = p_entry->next;
     }
   }
 

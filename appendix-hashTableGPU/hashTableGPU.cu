@@ -16,9 +16,9 @@
 #include "../common/book.h"
 #include "lock.h"
 
-#define SIZE 100*1024*1024
-#define ELEMENTS (SIZE / sizeof(unsigned int))
-#define HASH_ENTRIES 1024
+#define nBytesData 100*1024*1024
+#define nData (nBytesData / sizeof(unsigned int))
+#define nBins 1024
 
 struct Entry {
   unsigned int key;
@@ -26,46 +26,42 @@ struct Entry {
   Entry* next;
 };
 
-struct Table {
-  size_t count;
-  Entry** entries;
-  Entry* pool;
+struct HashTable {
+  Entry** bins;
+  Entry* entryPool;
 };
 
-void initialize_table(Table &table, int entries, int elements);
-__global__ void add_to_table(unsigned int *keys, void **values, Table table, Lock *lock);
-__device__ __host__ size_t hash(unsigned int key, size_t count) { return key % count; }
-void verify_table(const Table &dev_table);
-void copy_table_to_host(const Table &table, Table &hostTable);
-void free_table(Table &table);
+void initializeTable(HashTable &table);
+__global__ void gpuAddEntriesToTable(HashTable table, Lock* lock, unsigned int* keys, void** values);
+__device__ __host__ size_t computeHash(unsigned int key) { return key % nBins; }
+void verifyTable(const HashTable &gpuTable);
+void copyTableToHost(const HashTable &cpuTable, HashTable &gpuTable);
+void freeTable(HashTable &table);
 
 int main(void) {
 
-  unsigned int* buffer = (unsigned int*) big_random_block(SIZE);
+  unsigned int* data = (unsigned int*) big_random_block(nBytesData);
+  unsigned int* gpuKeys;
+  void** gpuValues;
+  HANDLE_ERROR(cudaMalloc((void**) &gpuKeys, nBytesData));
+  HANDLE_ERROR(cudaMalloc((void**) &gpuValues, nBytesData));
+  HANDLE_ERROR(cudaMemcpy(gpuKeys, data, nBytesData, cudaMemcpyHostToDevice));
+  // A real implementation would copy the values to gpuValues here.
 
-  unsigned int *dev_keys;
-  void** dev_values;
-  HANDLE_ERROR(cudaMalloc((void**) &dev_keys, SIZE));
-  HANDLE_ERROR(cudaMalloc((void**) &dev_values, SIZE));
+  HashTable gpuTable;
+  initializeTable(gpuTable);
 
-  HANDLE_ERROR(cudaMemcpy(dev_keys, buffer, SIZE, cudaMemcpyHostToDevice));
-  // copy the values to dev_values here
-  // filled in by user of this code example
-
-  Table table;
-  initialize_table(table, HASH_ENTRIES, ELEMENTS);
-
-  Lock lock[HASH_ENTRIES];
-  Lock* dev_lock;
-  HANDLE_ERROR(cudaMalloc((void**) &dev_lock, HASH_ENTRIES * sizeof(Lock)));
-  HANDLE_ERROR(cudaMemcpy(dev_lock, lock, HASH_ENTRIES * sizeof(Lock), cudaMemcpyHostToDevice));
+  Lock cpuLocks[nBins];
+  Lock* gpuLocks;
+  HANDLE_ERROR(cudaMalloc((void**) &gpuLocks, nBins*sizeof(Lock)));
+  HANDLE_ERROR(cudaMemcpy(gpuLocks, cpuLocks, nBins*sizeof(Lock), cudaMemcpyHostToDevice));
 
   cudaEvent_t start, stop;
   HANDLE_ERROR(cudaEventCreate(&start));
   HANDLE_ERROR(cudaEventCreate(&stop));
   HANDLE_ERROR(cudaEventRecord(start, 0));
 
-  add_to_table<<<60, 256>>>(dev_keys, dev_values, table, dev_lock);
+  gpuAddEntriesToTable<<<60, 256>>>(gpuTable, gpuLocks, gpuKeys, gpuValues);
 
   HANDLE_ERROR(cudaEventRecord(stop, 0));
   HANDLE_ERROR(cudaEventSynchronize(stop));
@@ -73,97 +69,99 @@ int main(void) {
   HANDLE_ERROR(cudaEventElapsedTime(&elapsedTime, start, stop));
   printf("Time to hash: %3.1f ms\n", elapsedTime);
 
-  verify_table(table);
+  verifyTable(gpuTable);
 
   HANDLE_ERROR(cudaEventDestroy(start));
   HANDLE_ERROR(cudaEventDestroy(stop));
-  free_table(table);
-  HANDLE_ERROR(cudaFree(dev_lock));
-  HANDLE_ERROR(cudaFree(dev_keys));
-  HANDLE_ERROR(cudaFree(dev_values));
-  free(buffer);
+  freeTable(gpuTable);
+  HANDLE_ERROR(cudaFree(gpuLocks));
+  HANDLE_ERROR(cudaFree(gpuKeys));
+  HANDLE_ERROR(cudaFree(gpuValues));
+  free(data);
   return 0;
 }
 
-void initialize_table(Table &table, int entries, int elements) {
-  table.count = entries;
-  HANDLE_ERROR(cudaMalloc((void**) &table.entries, entries*sizeof(Entry*)));
-  HANDLE_ERROR(cudaMemset(table.entries, 0, entries*sizeof(Entry*)));
-  HANDLE_ERROR(cudaMalloc((void**) &table.pool, elements*sizeof(Entry)));
+void initializeTable(HashTable &table) {
+  HANDLE_ERROR(cudaMalloc((void**) &table.bins, nBins*sizeof(Entry*)));
+  HANDLE_ERROR(cudaMemset(table.bins, 0, nBins*sizeof(Entry*)));
+  HANDLE_ERROR(cudaMalloc((void**) &table.entryPool, nData*sizeof(Entry)));
 }
 
-__global__ void add_to_table(unsigned int* keys, void** values, Table table, Lock* lock) {
+__global__ void gpuAddEntriesToTable(HashTable table, Lock* gpuLocks, unsigned int* keys, void** values) {
 
   int tid = blockDim.x*blockIdx.x + threadIdx.x;
   int stride = gridDim.x*blockDim.x;
 
-  while (tid < ELEMENTS) {
+  while (tid < nData) {
     unsigned int key = keys[tid];
-    size_t hashValue = hash(key, table.count);
+    size_t hashValue = computeHash(key);
     for (int i = 0; i < 32; i++) {
       if ((tid % 32) == i) {
-        Entry* location = &(table.pool[tid]);
-        location->key = key;
-        location->value = values[tid];
-        lock[hashValue].lock();
-        location->next = table.entries[hashValue];
-        table.entries[hashValue] = location;
-        lock[hashValue].unlock();
+
+        Entry* p_entry = &(table.entryPool[tid]);
+        p_entry->key = key;
+        p_entry->value = values[tid];
+
+        // Compare this to code missing lock() and unlock() calls.
+        gpuLocks[hashValue].lock();
+        p_entry->next = table.bins[hashValue];
+        table.bins[hashValue] = p_entry;
+        gpuLocks[hashValue].unlock();
       }
     }
     tid += stride;
   }
 }
 
-void verify_table(const Table &dev_table) {
-  Table table;
-  copy_table_to_host(dev_table, table);
+void verifyTable(const HashTable &gpuTable) {
 
-  int count = 0;
-  for (size_t i = 0; i < table.count; i++) {
-    Entry* current = table.entries[i];
-    while (current != NULL) {
-      count++;
-      if (hash(current->key, table.count) != i) {
-        printf("%d hashed to %ld, but was located at %ld\n", current->key, hash(current->key, table.count), i);
+  HashTable cpuTable;
+  copyTableToHost(gpuTable, cpuTable);
+
+  int entryCount = 0;
+  for (size_t i = 0; i < nBins; i++) {
+    Entry* p_entry = cpuTable.bins[i];
+    while (p_entry != NULL) {
+      entryCount++;
+      if (computeHash(p_entry->key) != i) {
+        printf("%d hashed to %ld, but was located at %ld\n", p_entry->key, computeHash(p_entry->key), i);
       }
-      current = current->next;
+      p_entry = p_entry->next;
     }
   }
 
-  if (count != ELEMENTS) {
-    printf("%d elements found in hash table. Should be %ld\n", count, ELEMENTS);
+  if (entryCount != nData) {
+    printf("%d elements found in hash table. Should be %ld\n", entryCount, nData);
   } else {
-    printf("All %d elements found in hash table.\n", count);
+    printf("All %d elements found in hash table.\n", entryCount);
   }
 
-  free(table.pool);
-  free(table.entries);
+  free(cpuTable.entryPool);
+  free(cpuTable.bins);
 }
 
-void copy_table_to_host(const Table &table, Table &hostTable) {
+void copyTableToHost(const HashTable &gpuTable, HashTable &cpuTable) {
 
-  hostTable.count = table.count;
-  hostTable.entries = (Entry**) calloc(table.count, sizeof(Entry*));
-  hostTable.pool = (Entry*) malloc(ELEMENTS*sizeof(Entry));
+  cpuTable.bins = (Entry**) calloc(nBins, sizeof(Entry*));
+  cpuTable.entryPool = (Entry*) malloc(nData*sizeof(Entry));
 
-  HANDLE_ERROR(cudaMemcpy(hostTable.entries, table.entries, table.count * sizeof(Entry*), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR(cudaMemcpy(hostTable.pool, table.pool, ELEMENTS * sizeof(Entry), cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(cpuTable.bins, gpuTable.bins, nBins*sizeof(Entry*), cudaMemcpyDeviceToHost));
+  HANDLE_ERROR(cudaMemcpy(cpuTable.entryPool, gpuTable.entryPool, nData*sizeof(Entry), cudaMemcpyDeviceToHost));
 
-  for (int i = 0; i < table.count; i++) {
-    if (hostTable.entries[i] != NULL) {
-      hostTable.entries[i] = (Entry*) ((size_t) hostTable.entries[i] - (size_t) table.pool + (size_t) hostTable.pool);
+  for (int i = 0; i < nBins; i++) {
+    if (cpuTable.bins[i] != NULL) {
+      cpuTable.bins[i] = (Entry*) ((size_t) cpuTable.bins[i] - (size_t) gpuTable.entryPool + (size_t) cpuTable.entryPool);
     }
   }
 
-  for (int i = 0; i < ELEMENTS; i++) {
-    if (hostTable.pool[i].next != NULL) {
-      hostTable.pool[i].next = (Entry*) ((size_t) hostTable.pool[i].next - (size_t) table.pool + (size_t) hostTable.pool);
+  for (int i = 0; i < nData; i++) {
+    if (cpuTable.entryPool[i].next != NULL) {
+      cpuTable.entryPool[i].next = (Entry*) ((size_t) cpuTable.entryPool[i].next - (size_t) gpuTable.entryPool + (size_t) cpuTable.entryPool);
     }
   }
 }
 
-void free_table(Table &table) {
-  HANDLE_ERROR(cudaFree(table.pool));
-  HANDLE_ERROR(cudaFree(table.entries));
+void freeTable(HashTable &table) {
+  HANDLE_ERROR(cudaFree(table.entryPool));
+  HANDLE_ERROR(cudaFree(table.bins));
 }
