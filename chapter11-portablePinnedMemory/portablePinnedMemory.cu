@@ -57,7 +57,8 @@ int main(void) {
   HANDLE_ERROR(cudaSetDevice(0));
   HANDLE_ERROR(cudaSetDeviceFlags(cudaDeviceMapHost));
 
-  // Pass the cudaHostAllocPortable flag so that the host pointer can be used by multiple GPUs.
+  // Pass the cudaHostAllocPortable flag so that the host pointer can be used by multiple GPUs. To use this
+  // flag, you must have first called cudaSetDevice().
   float *a, *b;
   HANDLE_ERROR(cudaHostAlloc((void**) &a, N*sizeof(float), cudaHostAllocWriteCombined | cudaHostAllocPortable | cudaHostAllocMapped));
   HANDLE_ERROR(cudaHostAlloc((void**) &b, N*sizeof(float), cudaHostAllocWriteCombined | cudaHostAllocPortable | cudaHostAllocMapped));

@@ -40,6 +40,7 @@ void swap(T& a, T& b) {
 	b = t;
 }
 
+/** Returns a pointer to a block of randomly initialized bytes of a specified size. */
 void* big_random_block(int size) {
 	unsigned char* data = (unsigned char*) malloc(size);
 	HANDLE_NULL(data);
@@ -47,6 +48,7 @@ void* big_random_block(int size) {
 	return data;
 }
 
+/** Returns a pointer to a block of randomly initialized integers of a specified size. */
 int* big_random_block_int(int size) {
 	int* data = (int*)  malloc(size*sizeof(int));
 	HANDLE_NULL(data);

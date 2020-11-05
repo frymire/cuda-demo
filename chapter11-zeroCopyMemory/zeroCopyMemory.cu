@@ -59,12 +59,17 @@ float runDotProductTest(bool useZeroCopyMemory) {
 
   if (useZeroCopyMemory) {
 
-    // Allocate zero-copy memory on the CPU.
+    // Allocate zero-copy memory on the CPU with the flag cudaHostAllocMapped. This uses page-locked
+    // memory that will also allow direct memory reads from the GPU, bypassing its GDDR memory. If you're
+    // only making a single transfer, this saves you from copying the data from system memory to GPU memory,
+    // so there is no call to cudaMemcpy(). Also adding the flag cudaHostAllocWriteCombined queues writes into 
+    // a buffer that will eventually use a fast burst mode transfer to the GPU. This methodology bypasses the 
+    // L1 and L2 cache, which saves cache space for other uses, but makes reads by the CPU much slower.
     HANDLE_ERROR(cudaHostAlloc((void**) &a, nBytesData, cudaHostAllocWriteCombined | cudaHostAllocMapped));
     HANDLE_ERROR(cudaHostAlloc((void**) &b, nBytesData, cudaHostAllocWriteCombined | cudaHostAllocMapped));
     HANDLE_ERROR(cudaHostAlloc((void**) &aTimesB, nBlocks*sizeof(float), cudaHostAllocMapped));
 
-    // Set the GPU pointers.
+    // Map the CPU-side pointers to their corresponding GPU-side pointers.
     HANDLE_ERROR(cudaHostGetDevicePointer(&gpuA, a, 0));
     HANDLE_ERROR(cudaHostGetDevicePointer(&gpuB, b, 0));
     HANDLE_ERROR(cudaHostGetDevicePointer(&gpuATimesB, aTimesB, 0));

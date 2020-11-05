@@ -14,7 +14,7 @@
  */
 
 #include "../common/book.h"
-#include "lock.h"
+#include "../common/lock.h"
 
 #define nBytesData 100*1024*1024
 #define nData (nBytesData / sizeof(unsigned int))
@@ -32,25 +32,26 @@ struct HashTable {
 };
 
 void initializeTable(HashTable &table);
-__global__ void gpuAddEntriesToTable(HashTable table, Lock* lock, unsigned int* keys, void** values);
-__device__ __host__ size_t computeHash(unsigned int key) { return key % nBins; }
+__global__ void gpuAddEntriesToTable(HashTable table, Lock* gpuLocks, unsigned int* keys, void** values);
+__device__ __host__ size_t computeHash(unsigned int key) { return key % nBins; }  // compiled for both CPU and GPU
 void verifyTable(const HashTable &gpuTable);
 void copyTableToHost(const HashTable &cpuTable, HashTable &gpuTable);
 void freeTable(HashTable &table);
 
 int main(void) {
 
-  unsigned int* data = (unsigned int*) big_random_block(nBytesData);
+  unsigned int* cpuKeys = (unsigned int*) big_random_block(nBytesData);
   unsigned int* gpuKeys;
   void** gpuValues;
   HANDLE_ERROR(cudaMalloc((void**) &gpuKeys, nBytesData));
   HANDLE_ERROR(cudaMalloc((void**) &gpuValues, nBytesData));
-  HANDLE_ERROR(cudaMemcpy(gpuKeys, data, nBytesData, cudaMemcpyHostToDevice));
+  HANDLE_ERROR(cudaMemcpy(gpuKeys, cpuKeys, nBytesData, cudaMemcpyHostToDevice));
   // A real implementation would copy the values to gpuValues here.
 
   HashTable gpuTable;
   initializeTable(gpuTable);
 
+  // Allocate a lock for each hash table bin on the GPU.
   Lock cpuLocks[nBins];
   Lock* gpuLocks;
   HANDLE_ERROR(cudaMalloc((void**) &gpuLocks, nBins*sizeof(Lock)));
@@ -77,7 +78,7 @@ int main(void) {
   HANDLE_ERROR(cudaFree(gpuLocks));
   HANDLE_ERROR(cudaFree(gpuKeys));
   HANDLE_ERROR(cudaFree(gpuValues));
-  free(data);
+  free(cpuKeys);
   return 0;
 }
 
@@ -93,8 +94,12 @@ __global__ void gpuAddEntriesToTable(HashTable table, Lock* gpuLocks, unsigned i
   int stride = gridDim.x*blockDim.x;
 
   while (tid < nData) {
+
     unsigned int key = keys[tid];
     size_t hashValue = computeHash(key);
+
+    // This for-loop and if-statement seem unnecessary. The authors describe it as a hack necessary to manage contention 
+    // for the lock across threads in the warp, but they don't really explain how they arrived at this solution.
     for (int i = 0; i < 32; i++) {
       if ((tid % 32) == i) {
 
@@ -109,6 +114,7 @@ __global__ void gpuAddEntriesToTable(HashTable table, Lock* gpuLocks, unsigned i
         gpuLocks[hashValue].unlock();
       }
     }
+
     tid += stride;
   }
 }
@@ -148,12 +154,21 @@ void copyTableToHost(const HashTable &gpuTable, HashTable &cpuTable) {
   HANDLE_ERROR(cudaMemcpy(cpuTable.bins, gpuTable.bins, nBins*sizeof(Entry*), cudaMemcpyDeviceToHost));
   HANDLE_ERROR(cudaMemcpy(cpuTable.entryPool, gpuTable.entryPool, nData*sizeof(Entry), cudaMemcpyDeviceToHost));
 
+  /*
+     At this point, we have copied GPU pointer values into cpuTable.bins[] and cpuTable.entryPool[], but these cannot 
+     be dereferenced by the CPU. After all, they point to address locations in the GDDR on the GPU, rather than CPU-side
+     DDR. The relative offsets between memory locations *are* valid, however, so we compute these below and add them to the
+     (valid) base address cpuTable.entryPool to get addresses that can be dereferenced directly by the CPU.
+   */
+
+  // Compute CPU-side addresses for the histogram bins.
   for (int i = 0; i < nBins; i++) {
     if (cpuTable.bins[i] != NULL) {
       cpuTable.bins[i] = (Entry*) ((size_t) cpuTable.bins[i] - (size_t) gpuTable.entryPool + (size_t) cpuTable.entryPool);
     }
   }
 
+  // Compute CPU-side addresses for the entries.
   for (int i = 0; i < nData; i++) {
     if (cpuTable.entryPool[i].next != NULL) {
       cpuTable.entryPool[i].next = (Entry*) ((size_t) cpuTable.entryPool[i].next - (size_t) gpuTable.entryPool + (size_t) cpuTable.entryPool);
