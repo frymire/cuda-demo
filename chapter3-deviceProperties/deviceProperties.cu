@@ -99,10 +99,10 @@ int main(void) {
   int* devpSum;
 
   // Try to allocate an int on the GPU, and set the pointer to reference it
-  HANDLE_ERROR(cudaMalloc((void**) &devpSum, sizeof(int)));
+  HANDLE_ERROR(cudaMalloc((void**)&devpSum, sizeof(int)));
 
   // Call the kernel to add 2 + 7 on the GPU
-  add <<<1, 1>>> (2, 7, devpSum);
+  add << <1, 1 >> > (2, 7, devpSum);
 
   // NOTE: One mustn't deference a pointer allocated with cudaMalloc on the host side.  That is, don't do this...
   //int badMove = *devpSum;
