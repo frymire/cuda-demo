@@ -33,7 +33,7 @@ int main(void) {
 
   // Split the work over a DIM x DIM grid, with 1 thread per block. (Probably very inefficient.)
   dim3 grid(dim, dim);
-  fillBitmapWithJuliaValues << <grid, 1 >> > (dev_bitmap);
+  fillBitmapWithJuliaValues<<<grid, 1>>>(dev_bitmap);
 
   HANDLE_ERROR(cudaMemcpy(bitmap.get_ptr(), dev_bitmap, bitmap.image_size(), cudaMemcpyDeviceToHost));
   HANDLE_ERROR(cudaFree(dev_bitmap));
